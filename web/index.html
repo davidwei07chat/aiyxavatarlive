@@ -69,6 +69,9 @@
         .quick-link { text-decoration: none; }
         .quick-link .glass-card { transition: transform 0.3s, box-shadow 0.3s; cursor: pointer; }
         .quick-link:hover .glass-card { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(0,0,0,0.1); }
+        .embedded-page { width: 100%; border: 0; display: block; background: #f0f4fc; }
+        #tts-panel .embedded-page { height: 1450px; }
+        #admin-panel .embedded-page { height: 980px; }
         pre { background: #1e293b; color: #e2e8f0; padding: 12px; border-radius: 8px; font-size: 0.8rem; max-height: 120px; overflow-y: auto; }
         label { font-weight: 500; font-size: 0.9rem; color: #64748b; margin-bottom: 4px; }
         .param-hint { font-size: 0.75rem; color: #94a3b8; }
@@ -102,7 +105,7 @@
             </a>
         </div>
         <div class="col-md-3">
-            <a href="/admin.html" class="quick-link" target="_blank">
+            <a href="#admin-panel" class="quick-link">
                 <div class="glass-card p-3 text-center">
                     <i class="bi bi-speedometer2 fs-2" style="color: #4361ee;"></i>
                     <div class="fw-bold mt-2">管理后台</div>
@@ -111,7 +114,7 @@
             </a>
         </div>
         <div class="col-md-3">
-            <a href="/tts/index.html" class="quick-link" target="_blank">
+            <a href="#tts-panel" class="quick-link">
                 <div class="glass-card p-3 text-center">
                     <i class="bi bi-soundwave fs-2" style="color: #4361ee;"></i>
                     <div class="fw-bold mt-2">TTS 语音管理</div>
@@ -242,6 +245,16 @@
 
         </div>
     </div>
+
+    <section id="tts-panel" class="glass-card mt-4">
+        <div class="card-header"><i class="bi bi-soundwave"></i> TTS 语音管理</div>
+        <iframe class="embedded-page" src="/tts/index.html" title="TTS 语音管理"></iframe>
+    </section>
+
+    <section id="admin-panel" class="glass-card mt-4">
+        <div class="card-header"><i class="bi bi-speedometer2"></i> LiveTalking 控制台</div>
+        <iframe class="embedded-page" src="/admin.html" title="LiveTalking 控制台"></iframe>
+    </section>
 </div>
 
 <script>
