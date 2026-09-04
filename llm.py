@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from avatars.base_avatar import BaseAvatar
 from utils.logger import logger
+from server.session_manager import session_manager
 
 # Built-in LLM providers. Each exposes an OpenAI-compatible chat completions
 # endpoint; the active one is selected with --llm_provider (default: dashscope).
@@ -42,23 +43,25 @@ def _llm_model(opt) -> str:
     return getattr(opt, 'llm_model', '') or cfg['default_model']
 
 
-def llm_response(message,avatar_session:'BaseAvatar',datainfo:dict={}):
+def llm_response(message,avatar_session:'BaseAvatar',datainfo:dict={}, resume: bool = False):
     try:
         opt = avatar_session.opt
+        dialogue = session_manager.get_dialogue(opt.sessionid)
         start = time.perf_counter()
         client = _llm_client(opt)
         model = _llm_model(opt)
         end = time.perf_counter()
         logger.info(f"llm Time init: {end-start}s,{message}")
+        messages, turn = dialogue.begin(message, resume)
         completion = client.chat.completions.create(
             model=model,
-            messages=[{'role': 'system', 'content': '你是一个知识助手，尽量以简短、口语化的方式输出'},
-                    {'role': 'user', 'content': message}],
+            messages=messages,
             stream=True,
             # Display token usage in the last line of the streamed response.
             stream_options={"include_usage": True}
         )
         result=""
+        response=""
         first = True
         for chunk in completion:
             if len(chunk.choices)>0:
@@ -70,6 +73,9 @@ def llm_response(message,avatar_session:'BaseAvatar',datainfo:dict={}):
                 msg = chunk.choices[0].delta.content
                 if msg is None:
                     continue
+                response += msg
+                if not dialogue.is_current(turn):
+                    break
                 lastpos=0
                 #msglist = re.split('[,.!;:，。！?]',msg)
                 for i, char in enumerate(msg):
@@ -83,8 +89,10 @@ def llm_response(message,avatar_session:'BaseAvatar',datainfo:dict={}):
                 result = result+msg[lastpos:]
         end = time.perf_counter()
         logger.info(f"llm Time to last chunk: {end-start}s")
-        if result:
+        if result and dialogue.is_current(turn):
             avatar_session.put_msg_txt(result,datainfo)
+        if dialogue.is_current(turn):
+            dialogue.finish(response)
 
     except Exception as e:
         logger.exception('llm exceptiopn:')

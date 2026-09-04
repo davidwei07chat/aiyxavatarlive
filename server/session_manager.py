@@ -7,6 +7,7 @@ import uuid
 from typing import Dict, Optional
 from utils.logger import logger
 from avatars.base_avatar import BaseAvatar
+from server.dialogue import Dialogue
 
 
 class MaxSessionError(Exception):
@@ -34,6 +35,7 @@ class SessionManager:
         if not hasattr(self, "initialized"):
             self.sessions: Dict[str, BaseAvatar] = {}
             self.build_session_fn = None
+            self.dialogues: Dict[str, Dialogue] = {}
             self.max_session = 1   # default, override via set_max_session()
             self.initialized = True
 
@@ -80,11 +82,16 @@ class SessionManager:
             None, self.build_session_fn, sessionid, params
         )
         self.sessions[sessionid] = avatar_session
+        self.dialogues.setdefault(sessionid, Dialogue())
         return sessionid
         
     def add_session(self, sessionid: str, avatar_session: BaseAvatar):
         """同步添加静态或外部管理的会话（供非服务端入口调用）"""
         self.sessions[sessionid] = avatar_session
+        self.dialogues.setdefault(sessionid, Dialogue())
+
+    def get_dialogue(self, sessionid: str) -> Dialogue:
+        return self.dialogues.setdefault(sessionid, Dialogue())
         
     def remove_session(self, sessionid: str):
         """销毁会话资源"""
@@ -92,6 +99,7 @@ class SessionManager:
             logger.info(f"Removing session {sessionid}")
             # todo: 还可以主动调 avatar_session 释放
             self.sessions.pop(sessionid, None)
+            self.dialogues.pop(sessionid, None)
 
 # 单例抛出
 session_manager = SessionManager()

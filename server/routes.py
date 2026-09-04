@@ -52,10 +52,13 @@ async def human(request):
 
         if params.get('interrupt'):
             avatar_session.flush_talk()
+            session_manager.get_dialogue(sessionid).interrupt()
 
         datainfo = {}
-        if params.get('tts'):  # tts 参数透传（voice, emotion 等）
-            datainfo['tts'] = params.get('tts')
+        tts = params.get('tts') or {}
+        voice = tts.get('ref_file') or session_manager.get_dialogue(sessionid).voice
+        if voice:
+            datainfo['tts'] = {**tts, 'ref_file': voice}
 
         if params['type'] == 'echo':
             avatar_session.put_msg_txt(params['text'], datainfo)
@@ -63,7 +66,7 @@ async def human(request):
             llm_response = request.app.get("llm_response")
             if llm_response:
                 asyncio.get_event_loop().run_in_executor(
-                    None, llm_response, params['text'], avatar_session, datainfo
+                    None, llm_response, params['text'], avatar_session, datainfo, params.get('resume', False)
                 )
 
         return json_ok()
@@ -81,6 +84,7 @@ async def interrupt_talk(request):
         if avatar_session is None:
             return json_error("session not found")
         avatar_session.flush_talk()
+        session_manager.get_dialogue(sessionid).interrupt()
         return json_ok()
     except Exception as e:
         logger.exception('interrupt_talk exception:')
@@ -148,6 +152,22 @@ async def is_speaking(request):
     if avatar_session is None:
         return json_error("session not found")
     return json_ok(data=avatar_session.is_speaking())
+
+
+async def persona(request):
+    """Read or update the role, language, and voice for one avatar session."""
+    try:
+        params = await request.json() if request.method == 'POST' else request.query
+        sessionid = str(params.get('sessionid', ''))
+        if get_session(request, sessionid) is None:
+            return json_error("session not found")
+        dialogue = session_manager.get_dialogue(sessionid)
+        if request.method == 'POST':
+            dialogue.configure(params.get('persona', ''), params.get('language', ''), params.get('voice', ''))
+        return json_ok(data={"persona": dialogue.persona, "language": dialogue.language, "voice": dialogue.voice})
+    except Exception as e:
+        logger.exception('persona exception:')
+        return json_error(str(e))
 
 async def sse_handler(request):
     """SSE 事件流，推送服务器状态更新到客户端"""
@@ -250,6 +270,8 @@ def setup_routes(app):
     app.router.add_post("/record", record)
     app.router.add_post("/interrupt_talk", interrupt_talk)
     app.router.add_post("/is_speaking", is_speaking)
+    app.router.add_get("/persona", persona)
+    app.router.add_post("/persona", persona)
     app.router.add_get("/api/admin/config", admin_config)
     app.router.add_get("/api/admin/sessions", admin_sessions)
     app.router.add_get('/sse', sse_handler)

@@ -176,7 +176,31 @@
                         </div>
                         <button class="btn-primary-custom btn-sm ms-auto" onclick="sendText()"><i class="bi bi-send"></i> 发送</button>
                         <button class="btn-outline-custom btn-sm" onclick="interrupt()"><i class="bi bi-stop-circle"></i> 打断</button>
+                        <button class="btn-outline-custom btn-sm" onclick="resume()" title="从被打断的位置继续"><i class="bi bi-play-circle"></i> 继续</button>
                     </div>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <div class="card-header"><i class="bi bi-person-gear"></i> 数字人角色</div>
+                <div class="card-body">
+                    <textarea class="form-control form-control-sm mb-2" id="persona" rows="2" placeholder="例如：耐心的上海本地导游，偶尔用上海话问候。"></textarea>
+                    <div class="row g-2">
+                        <div class="col-6"><select class="form-select form-select-sm" id="language"><option value="zh-CN">普通话</option><option value="en-US">English</option><option value="yue-Hant-HK">粤语</option><option value="ja-JP">日本语</option></select></div>
+                        <div class="col-6"><input class="form-control form-control-sm" id="personaVoice" placeholder="TTS 音色 ID（可选）"></div>
+                    </div>
+                    <button class="btn-primary-custom btn-sm mt-2" onclick="savePersona()"><i class="bi bi-check2"></i> 应用角色设定</button>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <div class="card-header"><i class="bi bi-camera-video"></i> 用户摄像头</div>
+                <div class="card-body">
+                    <div class="d-flex gap-2 mb-2">
+                        <select class="form-select form-select-sm" id="cameraFacing"><option value="user">前置 / 笔记本摄像头</option><option value="environment">手机后置摄像头</option></select>
+                        <button class="btn-outline-custom btn-sm" onclick="toggleCamera()"><i class="bi bi-camera-video"></i> 开启</button>
+                    </div>
+                    <video id="cameraPreview" autoplay playsinline muted style="display:none"></video>
                 </div>
             </div>
 
@@ -331,11 +355,41 @@ function sendText() {
     fetch('/human', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, type, interrupt, sessionid: String(sessionid) }),
+        body: JSON.stringify({ text, type, interrupt, sessionid: String(sessionid), tts: { ref_file: document.getElementById('personaVoice').value } }),
     }).then(r => r.json()).then(d => {
         console.log('human:', d);
         document.getElementById('txtMessage').value = '';
     });
+}
+
+function savePersona() {
+    if (!sessionid) return alert('请先连接 WebRTC');
+    fetch('/persona', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionid: String(sessionid), persona: document.getElementById('persona').value, language: document.getElementById('language').value, voice: document.getElementById('personaVoice').value }),
+    }).then(r => r.json()).then(d => { if (d.code) alert(d.msg); });
+}
+
+function resume() {
+    if (!sessionid) return alert('请先连接 WebRTC');
+    fetch('/human', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: '', type: 'chat', resume: true, sessionid: String(sessionid), tts: { ref_file: document.getElementById('personaVoice').value } }),
+    });
+}
+
+let cameraStream = null;
+async function toggleCamera() {
+    const preview = document.getElementById('cameraPreview');
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null; preview.srcObject = null; preview.style.display = 'none';
+        return;
+    }
+    try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: document.getElementById('cameraFacing').value } }, audio: false });
+        preview.srcObject = cameraStream; preview.style.display = 'block';
+    } catch (error) { showError('无法访问摄像头：' + error.message); }
 }
 
 // ─── Audio Upload ──────────────────────────────────────────
