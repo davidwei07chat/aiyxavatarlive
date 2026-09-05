@@ -16,6 +16,7 @@ tqdm
 scipy
 #scikit-learn
 
+face_recognition
 #face_alignment
 #python_speech_features
 ##numba
