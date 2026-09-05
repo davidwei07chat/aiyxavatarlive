@@ -6,6 +6,7 @@ PYTHON="${ROOT_DIR}/.venv/bin/python"
 PORT="${LIVETALKING_PORT:-8010}"
 MODEL="${LIVETALKING_MODEL:-wav2lip}"
 AVATAR_ID="${LIVETALKING_AVATAR_ID:-wav2lip256_avatar1}"
+PUBLIC_HOST="${LIVETALKING_PUBLIC_HOST:-117.50.193.142}"
 
 cd "$ROOT_DIR"
 die() { printf '[LiveTalking] ERROR: %s\n' "$*" >&2; exit 1; }
@@ -52,5 +53,6 @@ done
 LAN_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
 printf '\n[LiveTalking] READY\n  local:   http://127.0.0.1:%s/index.html\n' "$PORT"
 [[ -n "$LAN_IP" ]] && printf '  network: http://%s:%s/index.html\n' "$LAN_IP" "$PORT"
+printf '  public:  http://%s:%s/index.html\n' "$PUBLIC_HOST" "$PORT"
 printf '  press Ctrl+C to stop\n\n'
 wait "$SERVER_PID"
