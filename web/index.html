@@ -134,7 +134,10 @@
                     <div class="row g-2 align-items-end mb-3">
                         <div class="col-md-4">
                             <label class="form-label">Avatar ID</label>
-                            <input type="text" class="form-control form-control-sm" id="offerAvatar" placeholder="wav2lip256_avatar1">
+                            <input type="text" class="form-control form-control-sm" id="offerAvatar" list="avatarOptions" value="wav2lip256_avatar1" placeholder="wav2lip256_avatar1">
+                            <datalist id="avatarOptions">
+                                <option value="wav2lip256_avatar1">默认已部署角色</option>
+                            </datalist>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">参考音频</label>
